@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0-windows10.0.26100.0</TargetFrameworks><TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <UseUwp>true</UseUwp><UseUwpTools>false</UseUwpTools><PlatformTarget>x64</PlatformTarget>
+    <PackageId>ScottPlot.D3D12.UWP</PackageId><AssemblyName>ScottPlot.D3D12.UWP</AssemblyName>
+    <Description>Complete ScottPlot Figures on native Windows.UI.Xaml SwapChainPanel through shared D3D12 GPU rendering.</Description>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Core/ScottPlot.D3D12.Core.csproj" /></ItemGroup>
+</Project>

@@ -1,0 +1,22 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:ScottPlot.D3D12"
+    xmlns:skia="clr-namespace:SkiaSharp.Views.WPF;assembly=SkiaSharp.Views.WPF">
+    <Style TargetType="{x:Type local:WpfPlotD3D12}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type local:WpfPlotD3D12}">
+                    <Grid ClipToBounds="True">
+                        <skia:SKElement x:Name="PART_BottomElement" />
+                        <Image
+                            x:Name="PART_CurveImage"
+                            IsHitTestVisible="False"
+                            Stretch="Fill" />
+                        <skia:SKElement x:Name="PART_TopElement" IsHitTestVisible="False" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

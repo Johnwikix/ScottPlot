@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net8.0-windows;net10.0-windows</TargetFrameworks>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <LangVersion>12</LangVersion>
+        <UseWPF>true</UseWPF>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <SignAssembly>True</SignAssembly>
+        <AssemblyOriginatorKeyFile>../../Key.snk</AssemblyOriginatorKeyFile>
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+        <PackageId>ScottPlot.D3D12</PackageId>
+        <Version>5.1.60</Version>
+        <Authors>Scott Harden</Authors>
+        <Company>Harden Technologies, LLC</Company>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Copyright>Copyright (c) Scott Harden / Harden Technologies, LLC</Copyright>
+        <PackageTags>plot graph data chart signal line d3d12 direct3d wpf</PackageTags>
+        <description>Direct3D 12 accelerated SignalXY rendering for ScottPlot WPF</description>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageProjectUrl>https://ScottPlot.NET</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Johnwikix/ScottPlot</RepositoryUrl>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <DebugType>portable</DebugType>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <IncludeSource>true</IncludeSource>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>NU5118, NU5100, NU1701, CS1591, CS1587, CS1573, CS1572, CS1570, CS1574, CS1584, CS8002</NoWarn>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <Deterministic>true</Deterministic>
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="../../../../dev/icon/v5/scottplot-icon-rounded-border-128.png" Pack="true" PackagePath="icon.png" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="SkiaSharp.Views.WPF" Version="3.119.0" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Vortice.D3DCompiler" Version="3.8.3" />
+        <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
+        <PackageReference Include="Vortice.Direct3D12" Version="3.8.3" />
+        <PackageReference Include="Vortice.Direct3D9" Version="3.8.3" />
+        <ProjectReference Include="..\..\ScottPlot5\ScottPlot.csproj" />
+        <ProjectReference Include="..\ScottPlot.WPF\ScottPlot.WPF.csproj" />
+    </ItemGroup>
+
+</Project>

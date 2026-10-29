@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><StartupObject>ProfileProgram</StartupObject>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../D3D12SkiaProbe/Program.cs" Link="OriginalFixture.cs" />
+    <PackageReference Include="SkiaSharp" Version="3.119.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.0" />
+    <PackageReference Include="Vortice.Direct3D12" Version="3.8.3" />
+    <ProjectReference Include="../../src/ScottPlot5/ScottPlot5/ScottPlot.csproj" />
+  </ItemGroup>
+</Project>
+

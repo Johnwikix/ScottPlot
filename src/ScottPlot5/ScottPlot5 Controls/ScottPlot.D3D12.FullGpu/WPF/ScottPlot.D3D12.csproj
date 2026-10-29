@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <UseWPF>true</UseWPF><PackageId>ScottPlot.D3D12</PackageId><AssemblyName>ScottPlot.D3D12</AssemblyName>
+    <Description>Complete ScottPlot WPF Figures rendered with hardware D3D12 through D3DImage, with native MSAA and no raster fallback.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Core/ScottPlot.D3D12.Core.csproj" />
+    <ProjectReference Include="../../ScottPlot.WPF/ScottPlot.WPF.csproj" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
+    <PackageReference Include="Vortice.Direct3D9" Version="3.8.3" />
+  </ItemGroup>
+</Project>

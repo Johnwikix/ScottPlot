@@ -12,6 +12,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\ScottPlot5 Controls\ScottPlot.D3D12\ScottPlot.D3D12.csproj" />
         <ProjectReference Include="..\..\ScottPlot5 Controls\ScottPlot.WPF\ScottPlot.WPF.csproj" />
         <ProjectReference Include="..\..\ScottPlot5\ScottPlot.csproj" />
     </ItemGroup>

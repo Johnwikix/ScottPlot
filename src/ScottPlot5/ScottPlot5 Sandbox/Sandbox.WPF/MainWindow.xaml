@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:ScottPlot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
+        xmlns:ScottPlot="clr-namespace:ScottPlot.D3D12;assembly=ScottPlot.D3D12"
         xmlns:local="clr-namespace:Sandbox.WPF"
         mc:Ignorable="d"
         WindowStartupLocation="CenterScreen"

@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-windows;net10.0-windows</TargetFrameworks>
+    <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><LangVersion>12</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks><EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Version>5.1.60-gpu.2</Version><Authors>ScottPlot contributors</Authors>
+    <PackageReleaseNotes>Local gpu.2 refresh. Renderer behavior is unchanged. The DisplayApp GC regression fix reuses its application-owned SignalXY pixel buffer and requires rebuilding DisplayApp; it is not embedded in this package.</PackageReleaseNotes><PackageLicenseExpression>MIT</PackageLicenseExpression><RepositoryUrl>https://github.com/Johnwikix/ScottPlot</RepositoryUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile><Deterministic>true</Deterministic>
+    <SignAssembly>true</SignAssembly><AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)../../Key.snk</AssemblyOriginatorKeyFile>
+    <NoWarn>$(NoWarn);CS8002</NoWarn><NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+  <PropertyGroup><PackageReadmeFile>README.md</PackageReadmeFile></PropertyGroup>
+  <ItemGroup><None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" /></ItemGroup>
+</Project>
+

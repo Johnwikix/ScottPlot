@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows10.0.26100.0</TargetFramework><TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <PlatformTarget>x64</PlatformTarget><RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseUwp>true</UseUwp><UseUwpTools>false</UseUwpTools><SelfContained>true</SelfContained><PublishAot>false</PublishAot><PublishTrimmed>false</PublishTrimmed>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><IsPackable>false</IsPackable><NuGetAudit>false</NuGetAudit><StartupObject>UwpValidation</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/*.cs" Link="Shared/%(Filename)%(Extension)" />
+    <ProjectReference Include="../../../src/ScottPlot5/ScottPlot5 Controls/ScottPlot.D3D12.FullGpu/UWP/ScottPlot.D3D12.UWP.csproj" />
+    <ProjectReference Include="../../../src/ScottPlot5/ScottPlot5 Cookbook/ScottPlot Cookbook.csproj" />
+    <ProjectReference Include="../../../src/ScottPlot5/ScottPlot5/ScottPlot.csproj" />
+  </ItemGroup>
+</Project>

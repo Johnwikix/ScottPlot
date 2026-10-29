@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget><UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks><IsPackable>false</IsPackable>
+    <StartupObject>WpfProgram</StartupObject><NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/*.cs" Link="Shared/%(Filename)%(Extension)" />
+    <Compile Include="../../../src/ScottPlot5/ScottPlot5 Controls/ScottPlot.D3D12/Rendering/D3D11On12Interop.cs" Link="D3D11On12Interop.cs" />
+    <PackageReference Include="SkiaSharp" Version="3.119.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.0" />
+    <PackageReference Include="Vortice.Direct3D12" Version="3.8.3" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
+    <PackageReference Include="Vortice.Direct3D9" Version="3.8.3" />
+    <ProjectReference Include="../../../src/ScottPlot5/ScottPlot5/ScottPlot.csproj" />
+  </ItemGroup>
+</Project>
+

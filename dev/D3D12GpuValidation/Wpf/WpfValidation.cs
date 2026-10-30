@@ -19,10 +19,10 @@ internal sealed class WpfValidation : Window
     [STAThread] private static void Main(string[] args)
     {
         string evidence = Path.GetFullPath(args[0]); Directory.CreateDirectory(evidence);
-        try { new Application().Run(new WpfValidation(evidence, args.Contains("--suite"))); }
+        try { new Application().Run(new WpfValidation(evidence, args.Contains("--suite"), SceneCatalog.Select(args))); }
         catch (Exception ex) { File.WriteAllText(Path.Combine(evidence, "fatal.txt"), ex.ToString()); Environment.ExitCode = 1; }
     }
-    private WpfValidation(string evidence, bool suite)
+    private WpfValidation(string evidence, bool suite, IReadOnlyList<SceneDefinition> scenes)
     {
         Evidence = evidence; ShowActivated = false; Width = 1000; Height = 740; Left = Top = 0; WindowStartupLocation = WindowStartupLocation.Manual;
         DockPanel root = new(); StackPanel commands = new() { Orientation = System.Windows.Controls.Orientation.Horizontal };
@@ -30,7 +30,7 @@ internal sealed class WpfValidation : Window
         Add(commands, "Resize", "ResizeProbe", () => { Width = Width == 1000 ? 850 : 1000; Height = Height == 740 ? 650 : 740; });
         Add(commands, "Close", "CloseProbe", Close);
         DockPanel.SetDock(commands, Dock.Top); root.Children.Add(commands); root.Children.Add(Control); Content = root;
-        Suite = new(Control, Control.CaptureBitmap, () => Control.LastGpuFrame, evidence, "WPF");
+        Suite = new(Control, Control.CaptureBitmap, () => Control.LastGpuFrame, evidence, "WPF", scenes);
         Suite.Caption += caption => Title = caption;
         SourceInitialized += (_, _) => SetWindowPos(new WindowInteropHelper(this).Handle, new nint(1), 0, 0, 0, 0, 0x13);
         Loaded += (_, _) => { if (suite) Suite.Start(); else { Control.Reset(SceneCatalog.All.First(s => s.Name.StartsWith("Performance/")).Create()); Control.Refresh(); } Timer.Start(); };

@@ -12,6 +12,7 @@ internal sealed class WindowSuite
     private readonly Func<D3D12FrameStatistics> Statistics;
     private readonly string Evidence;
     private readonly string Platform;
+    private readonly IReadOnlyList<SceneDefinition> Scenes;
     private readonly List<object> Cases = [];
     private readonly HashSet<string> Covered = [];
     private int Index = -1;
@@ -20,14 +21,20 @@ internal sealed class WindowSuite
     private string? Error;
     internal event Action<string>? Caption;
     internal bool Completed { get; private set; }
-    internal WindowSuite(IPlotControl control, Func<SKBitmap> capture, Func<D3D12FrameStatistics> statistics, string evidence, string platform)
+    internal WindowSuite(IPlotControl control, Func<SKBitmap> capture, Func<D3D12FrameStatistics> statistics, string evidence, string platform, IReadOnlyList<SceneDefinition>? scenes = null)
     {
-        Control = control; Capture = capture; Statistics = statistics; Evidence = evidence; Platform = platform;
+        Control = control; Capture = capture; Statistics = statistics; Evidence = evidence; Platform = platform; Scenes = scenes ?? SceneCatalog.All;
         Directory.CreateDirectory(Evidence);
     }
     internal void Start() { if (Index < 0) Next(); }
     internal void Fail(Exception exception) { Error = exception.ToString(); Phase = 0; }
     internal void Tick()
+    {
+        if (Completed || Index < 0) return;
+        try { TickCore(); }
+        catch (Exception ex) { Fail(ex); }
+    }
+    private void TickCore()
     {
         if (Completed || Index < 0) return;
         if (Phase == 0)
@@ -38,7 +45,7 @@ internal sealed class WindowSuite
                 else return;
             }
             if (Environment.TickCount64 - LoadedAt < 180) return;
-            SceneDefinition scene = SceneCatalog.All[Index];
+            SceneDefinition scene = Scenes[Index];
             string name = Index.ToString("D4");
             string? currentError = Error;
             if (currentError is null)
@@ -64,10 +71,10 @@ internal sealed class WindowSuite
     }
     private void Next()
     {
-        if (++Index >= SceneCatalog.All.Count) { Completed = true; Save(); AtomicWrite(Path.Combine(Evidence, "suite-completed.txt"), "complete"); return; }
+        if (++Index >= Scenes.Count) { Completed = true; Save(); AtomicWrite(Path.Combine(Evidence, "suite-completed.txt"), "complete"); return; }
         Error = null; Phase = 0; LoadedAt = Environment.TickCount64;
-        SceneDefinition scene = SceneCatalog.All[Index];
-        Caption?.Invoke($"{Platform} [{Index + 1}/{SceneCatalog.All.Count}] {scene.Name}");
+        SceneDefinition scene = Scenes[Index];
+        Caption?.Invoke($"{Platform} [{Index + 1}/{Scenes.Count}] {scene.Name}");
         try { Control.Reset(scene.Create()); Control.Refresh(); }
         catch (Exception ex) { Error = ex.ToString(); }
     }
@@ -75,11 +82,19 @@ internal sealed class WindowSuite
     {
         string[] inventory = typeof(Plot).Assembly.GetTypes().Where(t => typeof(IPlottable).IsAssignableFrom(t) && !t.IsAbstract).Select(SceneCatalog.CanonicalType).Distinct().Order().ToArray();
         AtomicWrite(Path.Combine(Evidence, "window-suite.json"), JsonSerializer.Serialize(new { Platform, Completed,
-            Scenes = Cases.Count, Expected = SceneCatalog.All.Count, Backend = Control.GRContext?.Backend.ToString(),
+            Scenes = Cases.Count, Expected = Scenes.Count, Backend = Control.GRContext?.Backend.ToString(),
             NativeMsaaSamples = 4, ExplicitGpuResolve = true, PerRenderReadbacks = 0, DiagnosticReadbacks = Cases.Count,
             Inventory = inventory.Select(t => new { Type = t, Covered = Covered.Contains(t) }).ToArray(),
             Cases }, new JsonSerializerOptions { WriteIndented = true }));
     }
-    private static void AtomicWrite(string path, string text) { File.WriteAllText(path + ".tmp", text); File.Move(path + ".tmp", path, true); }
+    private static void AtomicWrite(string path, string text)
+    {
+        File.WriteAllText(path + ".tmp", text);
+        for (int attempt = 0; ; attempt++)
+        {
+            try { File.Move(path + ".tmp", path, true); return; }
+            catch (IOException) when (attempt < 20) { Thread.Sleep(50); }
+        }
+    }
 }
 

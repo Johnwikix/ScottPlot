@@ -22,6 +22,19 @@ internal static class SceneCatalog
     internal static IReadOnlyList<SceneDefinition> All { get; } = Create();
     internal static string CanonicalType(Type type) => (type.IsGenericType ? type.GetGenericTypeDefinition() : type).FullName!;
 
+    /// <summary>Full catalogue, or the subset whose names contain any --scenes=substringA,substringB filter; --skip=N drops the first N matches for resuming.</summary>
+    internal static IReadOnlyList<SceneDefinition> Select(string[] args)
+    {
+        string? spec = args.FirstOrDefault(a => a.StartsWith("--scenes=", StringComparison.OrdinalIgnoreCase));
+        if (spec is null) return All;
+        string[] substrings = spec.Substring("--scenes=".Length).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        List<SceneDefinition> matches = All.Where(scene => substrings.Any(t => scene.Name.Contains(t, StringComparison.OrdinalIgnoreCase))).ToList();
+        if (matches.Count == 0) throw new InvalidOperationException("No scenes matched --scenes filter: " + spec);
+        string? skipSpec = args.FirstOrDefault(a => a.StartsWith("--skip=", StringComparison.OrdinalIgnoreCase));
+        if (skipSpec is not null && int.TryParse(skipSpec.Substring("--skip=".Length), out int skip)) matches = matches.Skip(skip).ToList();
+        return matches;
+    }
+
     private static List<SceneDefinition> Create()
     {
         List<SceneDefinition> scenes = [];
@@ -119,6 +132,42 @@ internal static class SceneCatalog
             p.Title("D3D12 full Figure / 32 x 20,000 / AA"); p.XLabel("Time (s)"); p.YLabel("Amplitude"); p.ShowLegend(); p.Axes.SetLimits(-10, 210, -1.6, 1.6);
         }, "Complete dense AA workload"));
         scenes.Add(new("Styles/TransparentFigure", p => { Basic(p); p.FigureBackground.Color = Colors.Transparent; p.DataBackground.Color = Colors.Transparent; p.Title("Transparent Figure"); }, "Premultiplied alpha"));
+        scenes.Add(new("Scale/SignalXY-16x500000", p =>
+        {
+            double[] xs = Enumerable.Range(0, 500000).Select(i => i * .002).ToArray();
+            for (int i = 0; i < 16; i++)
+            {
+                int curve = i;
+                var s = p.Add.SignalXY(xs, xs.Select(x => Math.Sin(x * (1 + curve % 4) + curve * .13) * Math.Exp(-Math.Pow(x - 400 - 60 * curve, 2) / 40000) + Math.Sin(x * 37 + curve * 2) * .15).ToArray());
+                s.LineWidth = 1.5f; s.LineStyle.AntiAlias = true;
+            }
+            p.Title("D3D12 scale / 16 x 500,000 SignalXY (8M points)"); p.XLabel("Time (ms)"); p.Axes.SetLimits(-10, 1010, -2.2, 2.2);
+        }, "Dense multi-curve large data"));
+        scenes.Add(new("Scale/Scatter-2x500000", p =>
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                int c = i;
+                double[] xs = Enumerable.Range(0, 500000).Select(j => j * .002 + c).ToArray();
+                double[] ys = xs.Select((x, j) => Math.Sin(x * 3 + c) + Math.Cos(x * .7 + j * 1e-5) * .3).ToArray();
+                Scatter scatter = p.Add.Scatter(xs, ys);
+                scatter.LineWidth = 1; scatter.MarkerSize = 0; scatter.Color = new ScottPlot.Palettes.Category10().GetColor(c);
+            }
+            p.Title("D3D12 scale / 2 x 500,000 Scatter (no markers)"); p.Axes.SetLimits(-1, 1002, -2, 2);
+        }, "Large scatter lines"));
+        scenes.Add(new("Scale/Signal-1x2000000", p =>
+        {
+            double[] ys = Enumerable.Range(0, 2000000).Select(i => Math.Sin(i * 1e-3) + Math.Sin(i * 1e-5) * .5).ToArray();
+            p.Add.Signal(ys, period: .001).LineWidth = 1;
+            p.Title("D3D12 scale / 1 x 2,000,000 Signal"); p.Axes.SetLimits(-100, 2100, -2, 2);
+        }, "Single very long signal"));
+        scenes.Add(new("Scale/Heatmap-1500x1500", p =>
+        {
+            double[,] data = new double[1500, 1500];
+            for (int y = 0; y < 1500; y++) for (int x = 0; x < 1500; x++) data[y, x] = Math.Sin(x * .01) * Math.Cos(y * .01) + Math.Sin(Math.Sqrt(x * x + y * y) * .02);
+            p.Add.Heatmap(data);
+            p.Title("D3D12 scale / 1500 x 1500 Heatmap");
+        }, "Large heatmap"));
         return scenes;
     }
 

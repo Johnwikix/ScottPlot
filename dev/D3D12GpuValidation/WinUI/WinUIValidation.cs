@@ -11,9 +11,11 @@ internal static class WinUIValidation
 {
     internal static string Evidence = "";
     internal static bool RunSuite;
+    internal static IReadOnlyList<SceneDefinition> Scenes = SceneCatalog.All;
     [STAThread] private static void Main(string[] args)
     {
         Evidence = Path.GetFullPath(args[0]); Directory.CreateDirectory(Evidence); RunSuite = args.Contains("--suite");
+        Scenes = SceneCatalog.Select(args);
         WinRT.ComWrappersSupport.InitializeComWrappers();
         Application.Start(init =>
         {
@@ -43,7 +45,7 @@ internal sealed class WinUIValidationApp : Application
             Add(commands, "Resize", "ResizeProbe", () => Window.AppWindow.Resize(new Windows.Graphics.SizeInt32(900, 700)));
             Add(commands, "Close", "CloseProbe", Window.Close);
             root.Children.Add(commands); Grid.SetRow(Control, 1); root.Children.Add(Control); Window.Content = root;
-            Suite = new(Control, Control.CaptureBitmap, () => Control.LastGpuFrame, WinUIValidation.Evidence, "WinUI");
+            Suite = new(Control, Control.CaptureBitmap, () => Control.LastGpuFrame, WinUIValidation.Evidence, "WinUI", WinUIValidation.Scenes);
             Suite.Caption += caption => Window.Title = caption;
             Control.Loaded += (_, _) => { if (WinUIValidation.RunSuite) Suite.Start(); else { Control.Reset(SceneCatalog.All.First(s => s.Name.StartsWith("Performance/")).Create()); Control.Refresh(); } Timer.Start(); };
             Timer.Tick += (_, _) => { if (WinUIValidation.RunSuite) Suite.Tick(); };

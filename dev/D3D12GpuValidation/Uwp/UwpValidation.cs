@@ -35,7 +35,8 @@ internal sealed class UwpValidationApp : Application
     {
         try
         {
-            RunSuite = args.Arguments.Contains("--suite");
+            string[] argv = args.Arguments.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            RunSuite = argv.Contains("--suite");
             Control = new UwpPlotD3D12();
             Grid root = new(); root.RowDefinitions.Add(new() { Height = GridLength.Auto }); root.RowDefinitions.Add(new());
             StackPanel commands = new() { Orientation = Windows.UI.Xaml.Controls.Orientation.Horizontal };
@@ -43,7 +44,7 @@ internal sealed class UwpValidationApp : Application
             Add(commands, "Resize", "ResizeProbe", () => Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryResizeView(new Windows.Foundation.Size(800, 600)));
             Add(commands, "Close", "CloseProbe", Exit);
             root.Children.Add(commands); Grid.SetRow(Control, 1); root.Children.Add(Control); Window.Current.Content = root;
-            Suite = new(Control, Control.CaptureBitmap, () => Control.LastGpuFrame, UwpValidation.Evidence, "UWP");
+            Suite = new(Control, Control.CaptureBitmap, () => Control.LastGpuFrame, UwpValidation.Evidence, "UWP", RunSuite ? SceneCatalog.Select(argv) : null);
             Suite.Caption += caption => Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().Title = caption;
             Control.Loaded += (_, _) => { if (RunSuite) Suite.Start(); else { Control.Reset(SceneCatalog.All.First(s => s.Name.StartsWith("Performance/")).Create()); Control.Refresh(); } Timer.Start(); };
             Timer.Tick += (_, _) => { if (RunSuite) Suite.Tick(); };

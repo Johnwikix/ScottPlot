@@ -1,0 +1,7 @@
+<Project>
+  <!-- Set ForkIdPrefix (e.g. "Johnwikix.") to rebrand NuGet package IDs for nuget.org;
+       empty by default so local packaging keeps the upstream IDs. -->
+  <PropertyGroup Condition="'$(ForkIdPrefix)' != '' and '$(PackageId)' != ''">
+    <PackageId>$(ForkIdPrefix)$(PackageId)</PackageId>
+  </PropertyGroup>
+</Project>

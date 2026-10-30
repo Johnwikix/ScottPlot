@@ -77,8 +77,10 @@ public sealed partial class D3D12Renderer : IDisposable
         try
         {
             canvas.ClipRect(new SKRect(0, 0, width, height));
-            if (plot is not null) RenderPlot(plot, canvas, null);
-            else RenderMultiplot(multiplot!, canvas, new PixelRect(0, width, height, 0));
+            // LocalClipBounds is conservative and can extend beyond the physical viewport.
+            PixelRect rectangle = new(0, width, height, 0);
+            if (plot is not null) RenderPlot(plot, canvas, rectangle);
+            else RenderMultiplot(multiplot!, canvas, rectangle);
         }
         finally { canvas.RestoreToCount(save); }
         long rendered = Stopwatch.GetTimestamp();
@@ -109,7 +111,7 @@ public sealed partial class D3D12Renderer : IDisposable
         }
     }
 
-    private void RenderPlot(Plot plot, SKCanvas canvas, PixelRect? rectangle)
+    private void RenderPlot(Plot plot, SKCanvas canvas, PixelRect rectangle)
     {
         lock (plot.Sync)
         {
@@ -126,7 +128,7 @@ public sealed partial class D3D12Renderer : IDisposable
                     for (int i = 0; i < actions.Count; i++)
                         if (actions[i].GetType() == typeof(RenderPlottables)) { replaced.Add((i, actions[i])); actions[i] = optimized; }
                 }
-                if (rectangle is PixelRect rect) plot.Render(canvas, rect); else plot.Render(Target.Surface!);
+                plot.Render(canvas, rectangle);
             }
             finally
             {

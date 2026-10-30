@@ -53,6 +53,32 @@ public sealed class GpuRendererTests
         }
     }
 
+    /// <summary>Uses the physical viewport for layout even when the retained GPU texture is larger.</summary>
+    [TestCase(.5, false), TestCase(1, false), TestCase(1.5, true), TestCase(2, false), TestCase(2, true)]
+    public void Test_FullFigure_LayoutMatchesPhysicalViewport(double scale, bool hairline)
+    {
+        const int width = 800, height = 600;
+        using Plot plot = Scene();
+        plot.ScaleFactor = scale;
+        plot.Axes.Hairline(hairline);
+        using SKSurface cpu = SKSurface.Create(new SKImageInfo(width, height));
+        plot.Render(cpu.Canvas, width, height);
+        PixelRect expectedDataRect = plot.RenderManager.LastRender.DataRect;
+        using D3D12Renderer renderer = new();
+        renderer.Render(plot, width * 2, height * 2);
+        for (int i = 0; i < 3; i++)
+        {
+            renderer.Render(plot, width, height);
+            Assert.Multiple(() =>
+            {
+                Assert.That(plot.RenderManager.LastRender.FigureRect, Is.EqualTo(new PixelRect(width, height)));
+                Assert.That(plot.RenderManager.LastRender.DataRect, Is.EqualTo(expectedDataRect));
+                Assert.That(plot.ScaleFactor, Is.EqualTo(scale));
+            });
+        }
+        Assert.That(renderer.PixelReadbackCount, Is.Zero);
+    }
+
     /// <summary>Compares original and optimized native GPU paths while keeping public plottable/data references unchanged.</summary>
     [TestCase(ConnectStyle.Straight), TestCase(ConnectStyle.StepHorizontal), TestCase(ConnectStyle.StepVertical)]
     public void OptimizedSignalKeepsPublicApiAndPixels(ConnectStyle style)

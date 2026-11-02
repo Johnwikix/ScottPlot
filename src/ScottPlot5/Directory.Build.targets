@@ -3,5 +3,14 @@
        empty by default so local packaging keeps the upstream IDs. -->
   <PropertyGroup Condition="'$(ForkIdPrefix)' != '' and '$(PackageId)' != ''">
     <PackageId>$(ForkIdPrefix)$(PackageId)</PackageId>
+    <PackageProjectUrl>https://github.com/Johnwikix/ScottPlot</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Johnwikix/ScottPlot.git</RepositoryUrl>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
+    <PackageReleaseNotes>Stable release of the Johnwikix fork, based on ScottPlot 5.1.60 with full-GPU D3D12 rendering. Source: https://github.com/Johnwikix/ScottPlot</PackageReleaseNotes>
   </PropertyGroup>
+  <ItemGroup Condition="'$(ForkIdPrefix)' != '' and '$(PackageId)' != ''">
+    <None Remove="nuget-readme.md" />
+    <None Remove="$(MSBuildThisFileDirectory)ScottPlot5 Controls\ScottPlot.D3D12.FullGpu\README.md" />
+    <None Include="$(MSBuildThisFileDirectory)nuget-fork-readme.md" Pack="true" PackagePath="readme.md" />
+  </ItemGroup>
 </Project>

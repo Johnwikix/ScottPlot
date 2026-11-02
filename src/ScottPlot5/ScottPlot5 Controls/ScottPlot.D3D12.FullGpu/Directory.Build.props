@@ -4,6 +4,7 @@
     <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><LangVersion>12</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks><EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Version>5.1.60-gpu.2</Version><Authors>ScottPlot contributors</Authors>
+    <Copyright>Copyright (c) Scott Harden / Harden Technologies, LLC</Copyright>
     <PackageReleaseNotes>Local gpu.2 refresh. Renderer behavior is unchanged. The DisplayApp GC regression fix reuses its application-owned SignalXY pixel buffer and requires rebuilding DisplayApp; it is not embedded in this package.</PackageReleaseNotes><PackageLicenseExpression>MIT</PackageLicenseExpression><RepositoryUrl>https://github.com/Johnwikix/ScottPlot</RepositoryUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile><Deterministic>true</Deterministic>
     <SignAssembly>true</SignAssembly><AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)../../Key.snk</AssemblyOriginatorKeyFile>

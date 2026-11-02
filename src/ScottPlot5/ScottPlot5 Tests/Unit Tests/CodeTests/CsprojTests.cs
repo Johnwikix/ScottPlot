@@ -6,7 +6,22 @@ internal class CsprojTests
 {
     readonly static Dictionary<string, string[]> ProjectFileContents = Directory
         .GetFiles(Path.Join(Paths.RepoFolder, "src/ScottPlot5/"), "*.csproj", SearchOption.AllDirectories)
-        .ToDictionary(x => x, File.ReadAllLines);
+        .ToDictionary(x => x, ReadProjectAndInheritedProperties);
+
+    // SDK projects import the nearest Directory.Build.props. Policy checks must also
+    // see inherited signing/license metadata instead of requiring duplicate declarations.
+    private static string[] ReadProjectAndInheritedProperties(string project)
+    {
+        List<string> lines = [.. File.ReadAllLines(project)];
+        for (DirectoryInfo? directory = Directory.GetParent(project); directory is not null; directory = directory.Parent)
+        {
+            string props = Path.Combine(directory.FullName, "Directory.Build.props");
+            if (!File.Exists(props)) continue;
+            lines.AddRange(File.ReadAllLines(props));
+            break;
+        }
+        return [.. lines];
+    }
 
     static Dictionary<string, string[]> NugetProjectFileContents => ProjectFileContents
         .Where(x => IsNugetProject(x.Key))

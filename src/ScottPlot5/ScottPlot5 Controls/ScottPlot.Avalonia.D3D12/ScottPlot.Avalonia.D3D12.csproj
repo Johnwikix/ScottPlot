@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-windows;net10.0-windows</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>../../Key.snk</AssemblyOriginatorKeyFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>ScottPlot.Avalonia.D3D12</PackageId>
+    <Version>5.1.61-gpu.1</Version>
+    <Authors>ScottPlot contributors</Authors>
+    <Copyright>Copyright (c) Scott Harden / Harden Technologies, LLC</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Description>Optional hardware D3D12 full-Figure backend for the cross-platform AvaPlot control.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/Johnwikix/ScottPlot</RepositoryUrl>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
+    <ProjectReference Include="../ScottPlot.Avalonia/ScottPlot.Avalonia.csproj" />
+    <ProjectReference Include="../ScottPlot.D3D12.FullGpu/Core/ScottPlot.D3D12.Core.csproj" />
+    <Compile Include="../ScottPlot.D3D12.FullGpu/WPF/D3D11On12Interop.cs" Link="Internal/D3D11On12Interop.cs" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>

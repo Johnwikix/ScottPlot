@@ -25,10 +25,12 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+        <PackageReference Include="Avalonia.Headless" Version="12.0.0" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\ScottPlot5\ScottPlot.csproj" />
+        <ProjectReference Include="..\..\ScottPlot5 Controls\ScottPlot.Avalonia\ScottPlot.Avalonia.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -66,10 +66,20 @@ public sealed partial class D3D12Renderer : IDisposable
     /// <param name="height">The physical viewport height.</param>
     public void Render(IMultiplot multiplot, int width, int height) => RenderCore(null, multiplot ?? throw new ArgumentNullException(nameof(multiplot)), width, height);
 
-    private void RenderCore(Plot? plot, IMultiplot? multiplot, int width, int height)
+    /// <summary>Renders a logical-pixel multiplot into a physical-pixel GPU viewport without changing Plot.ScaleFactor.</summary>
+    /// <param name="multiplot">The caller-owned multiplot using logical layout coordinates.</param>
+    /// <param name="width">The physical viewport width.</param>
+    /// <param name="height">The physical viewport height.</param>
+    /// <param name="logicalSize">The exact logical viewport size, before physical-pixel rounding.</param>
+    public void Render(IMultiplot multiplot, int width, int height, PixelSize logicalSize) =>
+        RenderCore(null, multiplot ?? throw new ArgumentNullException(nameof(multiplot)), width, height, logicalSize);
+
+    private void RenderCore(Plot? plot, IMultiplot? multiplot, int width, int height, PixelSize? logicalSize = null)
     {
         ObjectDisposedException.ThrowIf(Disposed, this); Device.VerifyAccess();
         if (width < 1 || height < 1) throw new ArgumentOutOfRangeException(nameof(width), "A positive physical viewport is required.");
+        if (logicalSize is { } logical && (!float.IsFinite(logical.Width) || !float.IsFinite(logical.Height) || logical.Width <= 0 || logical.Height <= 0))
+            throw new ArgumentOutOfRangeException(nameof(logicalSize), "A finite positive logical viewport is required.");
         if (!Target.Fits(width, height)) { Device.WaitForIdle(); Target.Ensure(width, height); }
         long bytes = GC.GetAllocatedBytesForCurrentThread(), start = Stopwatch.GetTimestamp();
         SKCanvas canvas = Target.Surface!.Canvas;
@@ -79,6 +89,11 @@ public sealed partial class D3D12Renderer : IDisposable
             canvas.ClipRect(new SKRect(0, 0, width, height));
             // LocalClipBounds is conservative and can extend beyond the physical viewport.
             PixelRect rectangle = new(0, width, height, 0);
+            if (logicalSize is { } size)
+            {
+                canvas.Scale(width / size.Width, height / size.Height);
+                rectangle = new(0, size.Width, size.Height, 0);
+            }
             if (plot is not null) RenderPlot(plot, canvas, rectangle);
             else RenderMultiplot(multiplot!, canvas, rectangle);
         }

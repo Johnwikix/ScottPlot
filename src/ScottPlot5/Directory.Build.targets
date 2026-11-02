@@ -11,6 +11,7 @@
   <ItemGroup Condition="'$(ForkIdPrefix)' != '' and '$(PackageId)' != ''">
     <None Remove="nuget-readme.md" />
     <None Remove="$(MSBuildThisFileDirectory)ScottPlot5 Controls\ScottPlot.D3D12.FullGpu\README.md" />
+    <None Remove="$(MSBuildThisFileDirectory)ScottPlot5 Controls\ScottPlot.Avalonia.D3D12\README.md" />
     <None Include="$(MSBuildThisFileDirectory)nuget-fork-readme.md" Pack="true" PackagePath="readme.md" />
   </ItemGroup>
 </Project>

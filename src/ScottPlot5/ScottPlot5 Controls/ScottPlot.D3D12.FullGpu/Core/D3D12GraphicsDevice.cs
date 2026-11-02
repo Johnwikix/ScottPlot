@@ -12,6 +12,7 @@ namespace ScottPlot.D3D12.Rendering;
 public sealed class D3D12GraphicsDevice : IDisposable
 {
     [ThreadStatic] private static D3D12GraphicsDevice? Shared;
+    [ThreadStatic] private static Dictionary<long, D3D12GraphicsDevice>? AdapterDevices;
     private readonly int OwnerThread = Environment.CurrentManagedThreadId;
     private readonly AutoResetEvent FenceEvent = new(false);
     private ID3D12Fence? Fence;
@@ -44,14 +45,20 @@ public sealed class D3D12GraphicsDevice : IDisposable
 
     /// <summary>Initializes a hardware Direct3D device and GPU context on the calling thread.</summary>
     /// <exception cref="PlatformNotSupportedException">A hardware D3D12/MSAA4 configuration is unavailable.</exception>
-    public D3D12GraphicsDevice()
+    public D3D12GraphicsDevice() : this(null) { }
+
+    /// <summary>Initializes a hardware device matching a platform compositor's adapter LUID.</summary>
+    /// <param name="adapterLuid">The adapter identifier supplied by the platform compositor.</param>
+    public D3D12GraphicsDevice(long adapterLuid) : this((long?)adapterLuid) { }
+
+    private D3D12GraphicsDevice(long? adapterLuid)
     {
         try
         {
             if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 17763))
                 throw new PlatformNotSupportedException("ScottPlot.D3D12 requires Windows 10 version 1809 or later.");
             FactoryObject = CreateDXGIFactory2<IDXGIFactory4>(false);
-            FactoryObject.EnumAdapters1(0, out IDXGIAdapter1 adapter).CheckError();
+            IDXGIAdapter1 adapter = FindAdapter(adapterLuid);
             AdapterObject = adapter;
             if ((adapter.Description1.Flags & AdapterFlags.Software) != 0)
                 throw new PlatformNotSupportedException("ScottPlot.D3D12 requires a hardware adapter; software rendering is disabled.");
@@ -67,6 +74,21 @@ public sealed class D3D12GraphicsDevice : IDisposable
         catch { DisposeNative(); throw; }
     }
 
+    private IDXGIAdapter1 FindAdapter(long? luid)
+    {
+        if (!luid.HasValue)
+        {
+            Factory.EnumAdapters1(0, out IDXGIAdapter1 first).CheckError();
+            return first;
+        }
+        for (uint index = 0; Factory.EnumAdapters1(index, out IDXGIAdapter1 candidate).Success; index++)
+        {
+            if (candidate.Description1.Luid == luid.Value) return candidate;
+            candidate.Dispose();
+        }
+        throw new PlatformNotSupportedException($"No hardware adapter matches compositor LUID 0x{luid.Value:X16}.");
+    }
+
     /// <summary>Acquires a reference-counted device shared by controls on the current UI thread.</summary>
     /// <returns>A lease whose disposal releases this caller's ownership.</returns>
     public static D3D12DeviceLease AcquireShared()
@@ -74,6 +96,18 @@ public sealed class D3D12GraphicsDevice : IDisposable
         D3D12GraphicsDevice device = Shared is { Disposed: false, IsDeviceLost: false } ? Shared : Shared = new();
         device.VerifyAccess(); device.Leases++;
         return new D3D12DeviceLease(device);
+    }
+
+    /// <summary>Acquires an adapter-matched device shared by optional controls on the current UI thread.</summary>
+    /// <param name="adapterLuid">The platform compositor's adapter identifier.</param>
+    /// <returns>A lease that must be released on the acquiring thread.</returns>
+    public static D3D12DeviceLease AcquireShared(long adapterLuid)
+    {
+        AdapterDevices ??= new();
+        if (!AdapterDevices.TryGetValue(adapterLuid, out D3D12GraphicsDevice? device) || device.IsDeviceLost)
+            AdapterDevices[adapterLuid] = device = new(adapterLuid);
+        device.VerifyAccess(); device.Leases++;
+        return new(device);
     }
 
     /// <summary>Throws if the caller is on another thread, the device is disposed, or its GPU context is lost.</summary>
@@ -107,6 +141,8 @@ public sealed class D3D12GraphicsDevice : IDisposable
         if (Environment.CurrentManagedThreadId != OwnerThread) throw new InvalidOperationException("Release the lease on its owning thread.");
         if (--Leases != 0) return;
         if (ReferenceEquals(Shared, this)) Shared = null;
+        long luid = Adapter.Description1.Luid;
+        if (AdapterDevices?.TryGetValue(luid, out var pooled) == true && ReferenceEquals(pooled, this)) AdapterDevices.Remove(luid);
         Dispose();
     }
 

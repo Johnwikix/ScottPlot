@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <UseWindowsForms>true</UseWindowsForms>
+    <PackageId>ScottPlot.D3D12.WinForms</PackageId>
+    <AssemblyName>ScottPlot.D3D12.WinForms</AssemblyName>
+    <Version>5.1.61-gpu.2</Version>
+    <PackageReleaseNotes>Adds the FormsPlotD3D12 full-Figure WinForms control with native HWND presentation.</PackageReleaseNotes>
+    <Description>Complete ScottPlot WinForms Figures rendered with hardware D3D12 through a native HWND swapchain, with native MSAA and no raster fallback.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Core/ScottPlot.D3D12.Core.csproj" />
+    <ProjectReference Include="../../ScottPlot.WinForms/ScottPlot.WinForms.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,5 +1,34 @@
 # ScottPlot.D3D12
 
+WinForms is available in the separate `ScottPlot.D3D12.WinForms` project/package (`net8.0-windows` and `net10.0-windows`).
+Use `ScottPlot.D3D12.FormsPlotD3D12` in place of `ScottPlot.WinForms.FormsPlot`:
+
+```csharp
+var plotControl = new ScottPlot.D3D12.FormsPlotD3D12 { Dock = DockStyle.Fill };
+Controls.Add(plotControl);
+plotControl.Plot.Add.Signal(ScottPlot.Generate.Sin(1000));
+plotControl.Plot.Axes.AutoScale();
+plotControl.Refresh();
+```
+
+It inherits `FormsPlotBase` and retains Plot/Multiplot/Reset, standard mouse and keyboard input, custom menus and cursor APIs.
+The complete Figure is copied on the GPU to a two-buffer HWND flip swapchain. Normal painting does not capture pixels.
+The default menu uses GPU raster exports and a GPU viewer; SVG retains ScottPlot's vector export.
+`CaptureBitmap()` reads back the last completed full viewport once and returns a caller-owned `SKBitmap`.
+`LastGpuFrame`, `PresentedFrames`, `PixelReadbackCount`, and `SwapChainResizeCount` expose diagnostics.
+Counters reset when the native handle/renderer is recreated. `LastGpuFrame` excludes presentation/compositor time.
+Initialize high DPI mode before creating controls. Client layout and input coordinates are physical pixels, as in the standard WinForms control.
+`Plot.ScaleFactor` remains application-controlled. GPU access and disposal require the creating UI thread;
+`Refresh()` can queue from another thread after handle creation, but callers must separately synchronize data mutations.
+Before the first handle exists, Refresh is ignored and initial WM_PAINT renders the current data.
+Handle destruction releases GPU resources; a later paint recreates them. Ordinary WinForms painting is supported only for an opaque GPU viewport;
+`DrawToBitmap`/GDI print capture and transparent parent-background composition are not GPU screenshot APIs.
+Dispose the control on permanent removal. Device loss fails explicitly; recreate the control after resolving the failure.
+
+The WinForms validation host is `dev/D3D12GpuValidation/WinForms`. Detailed Chinese acceptance steps, commands, evidence requirements,
+and a prompt for the testing agent are in [WINFORMS-D3D12-TEST-HANDOFF.md](../../../../../WINFORMS-D3D12-TEST-HANDOFF.md).
+WinForms runtime/GPU/window acceptance is pending; compilation does not establish that acceptance.
+
 Hardware D3D12 full-Figure rendering with SkiaSharp3.119.0, native4xMSAA and an explicit GPU resolve. The WPF package provides ScottPlot.D3D12.WpfPlotD3D12 (WpfPlotBase/IPlotControl API), including normal Plot/Multiplot, styling, menus, mouse/keyboard input and D3DImage presentation. Core, WinUI and modern .NET10 UWP adapters are separate packages.
 
 No WARP adapter, CPU presentation surface or automatic CPU rendering fallback is created. Unsupported hardware/context creation fails explicitly. Normal render/present loops do not read pixels back. Explicit CaptureBitmap/image export reads the GPU result once.

@@ -82,12 +82,18 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScottPlot.Avalonia.D3D12", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScottPlot.D3D12.Core", "ScottPlot5 Controls\ScottPlot.D3D12.FullGpu\Core\ScottPlot.D3D12.Core.csproj", "{ECFE507D-DDDC-4DF3-989F-F47352774BF2}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScottPlot.D3D12.WinForms", "ScottPlot5 Controls\ScottPlot.D3D12.FullGpu\WinForms\ScottPlot.D3D12.WinForms.csproj", "{EBD75209-1E57-4B96-B951-C0DA37CE775F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EBD75209-1E57-4B96-B951-C0DA37CE775F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBD75209-1E57-4B96-B951-C0DA37CE775F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBD75209-1E57-4B96-B951-C0DA37CE775F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBD75209-1E57-4B96-B951-C0DA37CE775F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9EBDE18F-F155-4C30-AEDC-624D4AA13E8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9EBDE18F-F155-4C30-AEDC-624D4AA13E8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9EBDE18F-F155-4C30-AEDC-624D4AA13E8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -202,6 +208,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{EBD75209-1E57-4B96-B951-C0DA37CE775F} = {957BAA80-422B-4231-BEC1-D03FD89425A2}
 		{7533069F-CC26-4B2F-8F23-4D5451C75538} = {957BAA80-422B-4231-BEC1-D03FD89425A2}
 		{F40FDE7D-9B87-4D3D-AEBE-8CA1CF29A10A} = {957BAA80-422B-4231-BEC1-D03FD89425A2}
 		{A4B18C4B-9CE4-4C07-9363-1AA7939000B2} = {957BAA80-422B-4231-BEC1-D03FD89425A2}

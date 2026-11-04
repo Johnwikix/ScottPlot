@@ -13,14 +13,16 @@ if($Prefix -ne '' -and -not $Prefix.EndsWith('.')){throw 'Prefix must end with a
 $repo=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 $gpu=Join-Path $repo 'src\ScottPlot5\ScottPlot5 Controls\ScottPlot.D3D12.FullGpu'
 $release=Join-Path $repo ("artifacts\d3d12-nuget\release-"+[DateTime]::Now.ToString('yyyyMMdd-HHmmss-fff'))
-$ids=@('ScottPlot','ScottPlot.WPF','ScottPlot.Avalonia','ScottPlot.D3D12.Core','ScottPlot.Avalonia.D3D12','ScottPlot.D3D12','ScottPlot.D3D12.WinUI','ScottPlot.D3D12.UWP')
+$ids=@('ScottPlot','ScottPlot.WPF','ScottPlot.WinForms','ScottPlot.Avalonia','ScottPlot.D3D12.Core','ScottPlot.Avalonia.D3D12','ScottPlot.D3D12','ScottPlot.D3D12.WinForms','ScottPlot.D3D12.WinUI','ScottPlot.D3D12.UWP')
 $avalonia=Join-Path $repo 'src\ScottPlot5\ScottPlot5 Controls\ScottPlot.Avalonia'
 $avaloniaD3D12=Join-Path $repo 'src\ScottPlot5\ScottPlot5 Controls\ScottPlot.Avalonia.D3D12'
 $projects=@(
     "$repo\src\ScottPlot5\ScottPlot5\ScottPlot.csproj",
     "$repo\src\ScottPlot5\ScottPlot5 Controls\ScottPlot.WPF\ScottPlot.WPF.csproj",
+    "$repo\src\ScottPlot5\ScottPlot5 Controls\ScottPlot.WinForms\ScottPlot.WinForms.csproj",
     "$avalonia\ScottPlot.Avalonia.csproj","$gpu\Core\ScottPlot.D3D12.Core.csproj",
     "$avaloniaD3D12\ScottPlot.Avalonia.D3D12.csproj","$gpu\WPF\ScottPlot.D3D12.csproj",
+    "$gpu\WinForms\ScottPlot.D3D12.WinForms.csproj",
     "$gpu\WinUI\ScottPlot.D3D12.WinUI.csproj","$gpu\UWP\ScottPlot.D3D12.UWP.csproj")
 $vswhere=Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft Visual Studio\Installer\vswhere.exe'
 $vs=& $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild -property installationPath
@@ -36,7 +38,7 @@ try {
     for($i=0;$i -lt $projects.Count;$i++){
         $id=$ids[$i]
         $common=@("/p:Version=$Version","/p:PackageVersion=$Version","/p:ForkIdPrefix=$Prefix",'/p:Configuration=Release','/p:BuildInParallel=false','/p:NuGetAudit=false','/p:UseArtifactsOutput=true',"/p:ArtifactsPath=$release\clean-$id","/p:PackageOutputPath=$release\packages",'/m:1','/nologo')
-        if($i -ge 6){& $msbuild $projects[$i] /restore /t:Pack @common *> "$release\$id-pack.log"}
+        if($id -in @('ScottPlot.D3D12.WinUI','ScottPlot.D3D12.UWP')){& $msbuild $projects[$i] /restore /t:Pack @common *> "$release\$id-pack.log"}
         else{& dotnet msbuild $projects[$i] /restore /t:Pack @common *> "$release\$id-pack.log"}
         if($LASTEXITCODE -ne 0){throw "Pack failed: $release\$id-pack.log"}
     }

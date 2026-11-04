@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>ScottPlot.D3D12.Core</PackageId><AssemblyName>ScottPlot.D3D12.Core</AssemblyName>
-    <Version>5.1.61-gpu.1</Version>
-    <PackageReleaseNotes>Adds compositor adapter matching and logical-pixel GPU viewports for the optional Avalonia backend.</PackageReleaseNotes>
+    <Version>5.1.61-gpu.2</Version>
+    <PackageReleaseNotes>Adds the native HWND swapchain presenter used by the WinForms full-Figure GPU control.</PackageReleaseNotes>
     <Description>Hardware D3D12 full Figure rendering for ScottPlot using Skia GPU, native MSAA, explicit GPU resolve, and no raster-surface fallback.</Description>
   </PropertyGroup>
   <ItemGroup>

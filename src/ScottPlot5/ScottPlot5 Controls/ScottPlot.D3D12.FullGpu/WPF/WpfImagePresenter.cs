@@ -65,14 +65,18 @@ internal sealed class WpfImagePresenter : IDisposable
 {
     private readonly D3D12Renderer Renderer;
     private readonly WpfInteropDevices Interop;
-    internal readonly D3DImage Image = new();
+    private readonly D3DImage Image;
     private D11.ID3D11Resource? Wrapped;
     private D11.ID3D11Texture2D? Shared11;
     private D9.IDirect3DTexture9? Texture9;
     private D9.IDirect3DSurface9? Surface9;
     private nint BoundResource;
     private bool Disposed;
-    internal WpfImagePresenter(D3D12Renderer renderer) { Renderer = renderer; Interop = WpfInteropDevices.Acquire(renderer.Device); }
+    internal WpfImagePresenter(D3D12Renderer renderer, D3DImage image)
+    {
+        Renderer = renderer; Image = image ?? throw new ArgumentNullException(nameof(image));
+        Interop = WpfInteropDevices.Acquire(renderer.Device);
+    }
     internal bool Present(int width, int height)
     {
         ObjectDisposedException.ThrowIf(Disposed, this);
@@ -111,7 +115,11 @@ internal sealed class WpfImagePresenter : IDisposable
     }
     private void ReleaseBinding()
     {
-        Image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, nint.Zero);
+        try { Image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, nint.Zero); }
+        finally { ReleaseNativeBinding(); }
+    }
+    private void ReleaseNativeBinding()
+    {
         Wrapped?.Dispose(); Wrapped = null; Surface9?.Dispose(); Surface9 = null;
         Texture9?.Dispose(); Texture9 = null; Shared11?.Dispose(); Shared11 = null; BoundResource = 0;
     }
@@ -119,12 +127,22 @@ internal sealed class WpfImagePresenter : IDisposable
     public void Dispose()
     {
         if (Disposed) return;
+        bool locked = false;
         try
         {
-            if (!Renderer.Device.IsDeviceLost) Renderer.Device.WaitForIdle(); Image.Lock();
-            try { ReleaseBinding(); } finally { Image.Unlock(); }
+            try
+            {
+                if (!Renderer.Device.IsDeviceLost) Renderer.Device.WaitForIdle();
+                Image.Lock(); locked = true;
+                Image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, nint.Zero);
+            }
+            finally { ReleaseNativeBinding(); }
         }
-        finally { Disposed = true; Interop.Dispose(); }
+        finally
+        {
+            try { if (locked) Image.Unlock(); }
+            finally { Disposed = true; Interop.Dispose(); }
+        }
     }
 }
 

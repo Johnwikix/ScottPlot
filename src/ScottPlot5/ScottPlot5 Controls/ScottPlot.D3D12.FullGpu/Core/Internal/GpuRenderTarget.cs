@@ -28,8 +28,13 @@ internal sealed class GpuRenderTarget : IDisposable
     {
         Device = device; Context = context; Queue = queue; ExactSize = exactSize;
         Allocator = Device.CreateCommandAllocator(CommandListType.Direct);
-        List = Device.CreateCommandList<ID3D12GraphicsCommandList>(0, CommandListType.Direct, Allocator);
-        List.Close();
+        try
+        {
+            List = Device.CreateCommandList<ID3D12GraphicsCommandList>(0, CommandListType.Direct, Allocator);
+            try { List.Close(); }
+            catch { List.Dispose(); throw; }
+        }
+        catch { Allocator.Dispose(); throw; }
     }
 
     internal bool Fits(int width, int height) => Surface is not null &&

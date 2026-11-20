@@ -15,6 +15,8 @@ public sealed class D3D12GraphicsDevice : IDisposable
     [ThreadStatic] private static Dictionary<long, D3D12GraphicsDevice>? AdapterDevices;
     private readonly int OwnerThread = Environment.CurrentManagedThreadId;
     private readonly AutoResetEvent FenceEvent = new(false);
+    private readonly AutoResetEvent RemovalEvent = new(false);
+    private RegisteredWaitHandle? RemovalWait;
     private ID3D12Fence? Fence;
     private ulong FenceValue;
     private int Leases;
@@ -39,6 +41,17 @@ public sealed class D3D12GraphicsDevice : IDisposable
     public string AdapterName => Adapter.Description1.Description;
     /// <summary>Gets whether the device/context is lost or has been disposed; no CPU fallback is attempted.</summary>
     public bool IsDeviceLost => Disposed || ContextObject?.IsAbandoned == true || DeviceObject?.DeviceRemovedReason.Failure == true;
+
+    /// <summary>Signals native device removal on a thread-pool thread.</summary>
+    /// <remarks>Handlers must dispatch graphics work to the owning thread and must complete without throwing.</remarks>
+    public event Action? DeviceRemoved;
+
+    /// <summary>Determines whether an exception reports a DXGI device loss or transient display change.</summary>
+    /// <param name="error">The exception reported by a native graphics operation.</param>
+    /// <returns><see langword="true"/> if the HRESULT describes a recoverable graphics failure.</returns>
+    public static bool IsDeviceLoss(Exception error) => (uint)error.HResult is
+        0x887A0005 or 0x887A0006 or 0x887A0007 or 0x887A0020 or 0x887A0022 or 0x887A0025;
+
     internal void VerifyOwnerThread() { if (Environment.CurrentManagedThreadId != OwnerThread) throw new InvalidOperationException("Access GPU resources on the owning thread."); }
     /// <summary>Gets the maximum supported BGRA surface sample count.</summary>
     public int MaximumBgraSampleCount => Context.GetMaxSurfaceSampleCount(SKColorType.Bgra8888);
@@ -70,6 +83,11 @@ public sealed class D3D12GraphicsDevice : IDisposable
             if (ContextObject.Backend != GRBackend.Direct3D || MaximumBgraSampleCount < 4)
                 throw new PlatformNotSupportedException("ScottPlot.D3D12 requires Direct3D with BGRA MSAA4; no fallback is available.");
             ContextObject.SetResourceCacheLimit(64L * 1024 * 1024);
+            // Device removal signals all monitored fences to UINT64_MAX, including while the plot is idle.
+            Fence.SetEventOnCompletion(ulong.MaxValue, RemovalEvent.SafeWaitHandle.DangerousGetHandle()).CheckError();
+            RemovalWait = ThreadPool.UnsafeRegisterWaitForSingleObject(RemovalEvent,
+                static (state, _) => ((D3D12GraphicsDevice)state!).DeviceRemoved?.Invoke(),
+                this, Timeout.Infinite, executeOnlyOnce: true);
         }
         catch { DisposeNative(); throw; }
     }
@@ -94,8 +112,7 @@ public sealed class D3D12GraphicsDevice : IDisposable
     public static D3D12DeviceLease AcquireShared()
     {
         D3D12GraphicsDevice device = Shared is { Disposed: false, IsDeviceLost: false } ? Shared : Shared = new();
-        device.VerifyAccess(); device.Leases++;
-        return new D3D12DeviceLease(device);
+        return device.AcquireLease();
     }
 
     /// <summary>Acquires an adapter-matched device shared by optional controls on the current UI thread.</summary>
@@ -106,8 +123,19 @@ public sealed class D3D12GraphicsDevice : IDisposable
         AdapterDevices ??= new();
         if (!AdapterDevices.TryGetValue(adapterLuid, out D3D12GraphicsDevice? device) || device.IsDeviceLost)
             AdapterDevices[adapterLuid] = device = new(adapterLuid);
-        device.VerifyAccess(); device.Leases++;
-        return new(device);
+        return device.AcquireLease();
+    }
+
+    private D3D12DeviceLease AcquireLease()
+    {
+        try { VerifyAccess(); }
+        catch
+        {
+            if (Leases == 0) ReleaseSharedDevice();
+            throw;
+        }
+        Leases++;
+        return new(this);
     }
 
     /// <summary>Throws if the caller is on another thread, the device is disposed, or its GPU context is lost.</summary>
@@ -138,8 +166,11 @@ public sealed class D3D12GraphicsDevice : IDisposable
 
     internal void ReleaseLease()
     {
-        if (Environment.CurrentManagedThreadId != OwnerThread) throw new InvalidOperationException("Release the lease on its owning thread.");
-        if (--Leases != 0) return;
+        if (--Leases == 0) ReleaseSharedDevice();
+    }
+
+    private void ReleaseSharedDevice()
+    {
         if (ReferenceEquals(Shared, this)) Shared = null;
         long luid = Adapter.Description1.Luid;
         if (AdapterDevices?.TryGetValue(luid, out var pooled) == true && ReferenceEquals(pooled, this)) AdapterDevices.Remove(luid);
@@ -161,10 +192,12 @@ public sealed class D3D12GraphicsDevice : IDisposable
     private void DisposeNative()
     {
         Disposed = true;
+        RemovalWait?.Unregister(null); RemovalWait = null;
         ContextObject?.Dispose(); ContextObject = null;
         Fence?.Dispose(); Fence = null; FenceEvent.Dispose();
         QueueObject?.Dispose(); QueueObject = null;
         DeviceObject?.Dispose(); DeviceObject = null;
+        RemovalEvent.Dispose();
         AdapterObject?.Dispose(); AdapterObject = null;
         FactoryObject?.Dispose(); FactoryObject = null;
     }
@@ -178,7 +211,14 @@ public sealed class D3D12DeviceLease : IDisposable
     /// <summary>Gets the shared device while this lease is alive.</summary>
     public D3D12GraphicsDevice Device => Owner ?? throw new ObjectDisposedException(nameof(D3D12DeviceLease));
     /// <inheritdoc />
-    public void Dispose() { D3D12GraphicsDevice? owner = Owner; if (owner is null) return; owner.ReleaseLease(); Owner = null; }
+    public void Dispose()
+    {
+        D3D12GraphicsDevice? owner = Owner;
+        if (owner is null) return;
+        owner.VerifyOwnerThread();
+        Owner = null;
+        owner.ReleaseLease();
+    }
 }
 
 

@@ -10,5 +10,6 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.0" />
     <ProjectReference Include="../../src/ScottPlot5/ScottPlot5 Controls/ScottPlot.Avalonia.D3D12/ScottPlot.Avalonia.D3D12.csproj" />
     <Compile Include="../AvaloniaD3D12Probe/FigureFixture.cs" Link="FigureFixture.cs" />
+    <Compile Include="../D3D12GpuValidation/Shared/DeviceRecoveryCheck.cs" Link="DeviceRecoveryCheck.cs" />
   </ItemGroup>
 </Project>

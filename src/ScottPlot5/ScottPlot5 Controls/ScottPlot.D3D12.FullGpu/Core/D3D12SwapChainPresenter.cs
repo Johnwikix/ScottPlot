@@ -34,7 +34,12 @@ public sealed class D3D12SwapChainPresenter : IDisposable
         try
         {
             Allocator = renderer.Device.NativeDevice.CreateCommandAllocator(CommandListType.Direct);
-            try { List = renderer.Device.NativeDevice.CreateCommandList<ID3D12GraphicsCommandList>(0, CommandListType.Direct, Allocator); List.Close(); }
+            try
+            {
+                List = renderer.Device.NativeDevice.CreateCommandList<ID3D12GraphicsCommandList>(0, CommandListType.Direct, Allocator);
+                try { List.Close(); }
+                catch { List.Dispose(); throw; }
+            }
             catch { Allocator.Dispose(); throw; }
         }
         catch { Marshal.Release(NativePanel); NativePanel = 0; throw; }
@@ -99,7 +104,11 @@ public sealed class D3D12SwapChainPresenter : IDisposable
     public void Dispose()
     {
         if (Disposed) return;
-        try { if (!Renderer.Device.IsDeviceLost) Renderer.Device.WaitForIdle(); SetSwapChain(0); }
+        try
+        {
+            try { if (!Renderer.Device.IsDeviceLost) Renderer.Device.WaitForIdle(); }
+            finally { SetSwapChain(0); }
+        }
         finally
         {
             SwapChain?.Dispose(); SwapChain = null; List.Dispose(); Allocator.Dispose();

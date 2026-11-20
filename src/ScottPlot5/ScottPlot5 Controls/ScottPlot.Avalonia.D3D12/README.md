@@ -22,7 +22,7 @@ await plotControl.RefreshAsync();
 
 Or bind the `RenderBackend` Avalonia property in shared XAML. Its default is `PlatformSkia`, so Linux/macOS retain Avalonia's existing canvas path without loading this Windows package. Requesting Direct3D12 on another OS reports PlatformNotSupportedException.
 
-The existing Plot / Multiplot / Reset / Menu / UserInputProcessor / Refresh APIs use logical pixels on both backends. GPU DPI scaling does not overwrite Plot.ScaleFactor. RefreshAsync propagates errors. Scheduled Refresh reports a latched RenderException, raises RenderFailed, and displays an error surface. It never switches to Skia after a D3D12 failure. Call RetryRenderAsync to recreate the renderer, or explicitly select PlatformSkia.
+The existing Plot / Multiplot / Reset / Menu / UserInputProcessor / Refresh APIs use logical pixels on both backends. GPU DPI scaling does not overwrite Plot.ScaleFactor. The D3D12 backend rebuilds its resources after device loss and retries the frame while the control is attached. Other rendering failures propagate from RefreshAsync and are reported through RenderException, RenderFailed, and an error surface. Call RetryRenderAsync to retry after a reported failure, or explicitly select PlatformSkia.
 
 Detach releases GPU resources asynchronously; attach initializes them again. Use `await plotControl.DisposeAsync()` for permanent removal. The renderer and native context are thread-affine; the control marshals refresh, retry and disposal to its UI thread.
 

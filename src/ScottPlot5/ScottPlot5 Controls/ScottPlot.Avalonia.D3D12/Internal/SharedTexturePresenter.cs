@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Platform;
 using Avalonia.Rendering.Composition;
@@ -51,6 +52,15 @@ internal sealed class SharedTexturePresenter : IAsyncDisposable
                 renderer.Device.CommandQueue.NativePointer);
         }
         catch { NativeContext.Dispose(); Native11.Dispose(); throw; }
+    }
+
+    internal bool IsDeviceLost => Interop.IsLost || Imported?.IsLost == true ||
+        Native11.DeviceRemovedReason.Failure || On12Device.DeviceRemovedReason.Failure;
+
+    internal void VerifyDevice()
+    {
+        if (IsDeviceLost)
+            throw new COMException("The Avalonia GPU presentation context was lost.", unchecked((int)0x887A0005));
     }
 
     internal async Task PresentAsync(AvaPixelSize size, CancellationToken cancellationToken)
@@ -116,7 +126,7 @@ internal sealed class SharedTexturePresenter : IAsyncDisposable
 
     private async Task ReleaseImageAsync()
     {
-        try { await Pending; }
+        try { if (!IsDeviceLost && !Renderer.Device.IsDeviceLost) await Pending; }
         catch when (Pending.IsFaulted || Pending.IsCanceled) { /* Still release all owned resources after a failed import. */ }
         try
         {
@@ -139,6 +149,7 @@ internal sealed class SharedTexturePresenter : IAsyncDisposable
         nint pointer = Mutex!.NativePointer;
         var acquire = (delegate* unmanaged[Stdcall]<nint, ulong, uint, int>)(*(nint**)pointer)[8];
         int result = acquire(pointer, 0, 10_000);
+        if (result < 0) Marshal.ThrowExceptionForHR(result);
         if (result != 0) throw new InvalidOperationException($"Keyed mutex acquire failed or timed out: 0x{result:X8}");
     }
 

@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Automation;
 using ScottPlot;
+using ScottPlot.D3D12.Rendering;
 using ScottPlot.D3D12.WinUI;
 
 /// <summary>Launches the production WinUI native GPU control for non-activating lvt acceptance.</summary>
@@ -11,10 +12,12 @@ internal static class WinUIValidation
 {
     internal static string Evidence = "";
     internal static bool RunSuite;
+    internal static bool RunRecovery;
     internal static IReadOnlyList<SceneDefinition> Scenes = SceneCatalog.All;
     [STAThread] private static void Main(string[] args)
     {
         Evidence = Path.GetFullPath(args[0]); Directory.CreateDirectory(Evidence); RunSuite = args.Contains("--suite");
+        RunRecovery = args.Contains("--recovery");
         Scenes = SceneCatalog.Select(args);
         WinRT.ComWrappersSupport.InitializeComWrappers();
         Application.Start(init =>
@@ -47,7 +50,7 @@ internal sealed class WinUIValidationApp : Application
             root.Children.Add(commands); Grid.SetRow(Control, 1); root.Children.Add(Control); Window.Content = root;
             Suite = new(Control, Control.CaptureBitmap, () => Control.LastGpuFrame, WinUIValidation.Evidence, "WinUI", WinUIValidation.Scenes);
             Suite.Caption += caption => Window.Title = caption;
-            Control.Loaded += (_, _) => { if (WinUIValidation.RunSuite) Suite.Start(); else { Control.Reset(SceneCatalog.All.First(s => s.Name.StartsWith("Performance/")).Create()); Control.Refresh(); } Timer.Start(); };
+            Control.Loaded += OnLoaded;
             Timer.Tick += (_, _) => { if (WinUIValidation.RunSuite) Suite.Tick(); };
             Window.Closed += (_, _) => { Timer.Stop(); Control.Dispose(); File.WriteAllText(Path.Combine(WinUIValidation.Evidence, "closed.txt"), "Production WinUI control Dispose completed."); };
             Window.AppWindow.Resize(new Windows.Graphics.SizeInt32(1100, 820));
@@ -55,6 +58,24 @@ internal sealed class WinUIValidationApp : Application
             Window.AppWindow.Show(false);
         }
         catch (Exception ex) { File.WriteAllText(Path.Combine(WinUIValidation.Evidence, "fatal.txt"), ex.ToString()); Exit(); }
+    }
+    private async void OnLoaded(object sender, RoutedEventArgs args)
+    {
+        if (WinUIValidation.RunRecovery)
+        {
+            Control!.Loaded -= OnLoaded;
+            try
+            {
+                await DeviceRecoveryCheck.RunAsync(Control, Control.CaptureBitmap, () => Control.PresentedFrames, D3D12GraphicsDevice.AcquireShared);
+                File.WriteAllText(Path.Combine(WinUIValidation.Evidence, "recovery-passed.txt"), "Recovered and presented after both device losses.");
+            }
+            catch (Exception error) { File.WriteAllText(Path.Combine(WinUIValidation.Evidence, "recovery-failed.txt"), error.ToString()); }
+            finally { Window!.Close(); }
+            return;
+        }
+        if (WinUIValidation.RunSuite) Suite!.Start();
+        else { Control!.Reset(SceneCatalog.All.First(s => s.Name.StartsWith("Performance/")).Create()); Control.Refresh(); }
+        Timer.Start();
     }
     private static void Add(Panel panel, string text, string id, Action action)
     {

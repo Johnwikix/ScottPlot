@@ -45,7 +45,8 @@ public sealed partial class D3D12Renderer : IDisposable
     public D3D12Renderer()
     {
         Lease = D3D12GraphicsDevice.AcquireShared(); Device = Lease.Device;
-        Target = new(Device.NativeDevice, Device.Context, Device.CommandQueue);
+        try { Target = new(Device.NativeDevice, Device.Context, Device.CommandQueue); }
+        catch { Lease.Dispose(); throw; }
     }
     /// <summary>Initializes a renderer borrowing a caller-owned hardware device.</summary>
     /// <param name="device">The graphics device owned by the caller.</param>
@@ -171,7 +172,9 @@ public sealed partial class D3D12Renderer : IDisposable
         finally
         {
             foreach (var optimizer in Optimizers) optimizer.Value.Optimizer.Dispose();
-            Optimizers.Clear(); Target.Dispose(); Disposed = true; Lease?.Dispose();
+            Optimizers.Clear();
+            try { Target.Dispose(); }
+            finally { Disposed = true; Lease?.Dispose(); }
         }
         GC.SuppressFinalize(this);
     }

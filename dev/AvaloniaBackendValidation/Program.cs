@@ -119,6 +119,12 @@ internal sealed class ValidationWindow : Window
                 await ValidateAsync();
                 File.WriteAllText(Path.Combine(Program.Output, "completed.txt"), "complete");
             }
+            else if (Program.Has("--recovery"))
+            {
+                await ValidateDeviceRecoveryAsync();
+                File.WriteAllText(Path.Combine(Program.Output, "recovery-passed.txt"), "Recovered and presented after both device losses.");
+                Close();
+            }
         });
         Closing += async (_, e) =>
         {
@@ -315,6 +321,18 @@ internal sealed class ValidationWindow : Window
         }
         await Control.RetryRenderAsync();
         Require(Control.RenderException is null && Control.RenderBackendInstance is D3D12AvaPlotRenderer, "Initialization retry failed");
+    }
+
+    private async Task ValidateDeviceRecoveryAsync()
+    {
+        await SelectAsync(AvaPlotRenderBackend.Direct3D12);
+        var renderer = (D3D12AvaPlotRenderer)Control.RenderBackendInstance!;
+        var interop = await ElementComposition.GetElementVisual(Control)!.Compositor.TryGetCompositionGpuInterop();
+        long luid = BitConverter.ToInt64(interop?.DeviceLuid ?? throw new InvalidOperationException("The compositor has no adapter LUID."));
+        int previousErrors = ErrorEvents;
+        await DeviceRecoveryCheck.RunAsync(Control, renderer.CaptureBitmap, () => renderer.CompletedFrames,
+            () => D3D12GraphicsDevice.AcquireShared(luid));
+        Require(ErrorEvents == previousErrors && Control.RenderException is null, "Device loss was reported as a permanent rendering error.");
     }
 
     private async Task InjectRuntimeFailureAsync()

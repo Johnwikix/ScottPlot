@@ -18,6 +18,8 @@ public partial class UwpPlotD3D12 : UserControl, IPlotControl, IDisposable
     private readonly Windows.UI.Core.DispatchedHandler RenderCallback;
     private D3D12Renderer? Renderer;
     private D3D12SwapChainPresenter? Presenter;
+    private DispatcherTimer? RecoveryTimer;
+    private int RecoveryAttempt;
     private XamlRoot? ObservedRoot;
     private int Queued;
     private volatile bool Disposed;
@@ -28,6 +30,8 @@ public partial class UwpPlotD3D12 : UserControl, IPlotControl, IDisposable
     public IMultiplot Multiplot { get; set; }
     /// <inheritdoc />
     public GRContext GRContext => GetRenderer().Device.Context;
+    /// <summary>Gets the number of frames successfully presented by this control.</summary>
+    public long PresentedFrames { get; private set; }
     /// <inheritdoc />
     public IPlotMenu? Menu { get; set; }
     /// <inheritdoc />
@@ -70,28 +74,75 @@ public partial class UwpPlotD3D12 : UserControl, IPlotControl, IDisposable
     {
         Interlocked.Exchange(ref Queued, 0);
         if (Disposed || LifecycleSuspended || !IsLoaded || XamlRoot is null) return;
+        if (RecoveryTimer?.IsEnabled == true) return;
+        if (Renderer?.Device.IsDeviceLost == true)
+        {
+            BeginRecovery();
+            return;
+        }
         int width = (int)Math.Ceiling(Panel.ActualWidth * Panel.CompositionScaleX);
         int height = (int)Math.Ceiling(Panel.ActualHeight * Panel.CompositionScaleY);
         if (width <= 0 || height <= 0) return;
-        D3D12Renderer renderer = GetRenderer();
-        if (Presenter is null)
+        bool initializing = true;
+        try
         {
-            Guid iid = new("F92F19D2-3ADE-45A6-A20C-F6F1EA90554B");
-            nint inspectable = WinRT.MarshalInspectable<SwapChainPanel>.FromManaged(Panel);
-            try
+            D3D12Renderer renderer = GetRenderer();
+            if (Presenter is null)
             {
-                Marshal.ThrowExceptionForHR(Marshal.QueryInterface(inspectable, in iid, out nint native));
-                try { Presenter = new(renderer, native); } finally { Marshal.Release(native); }
+                Guid iid = new("F92F19D2-3ADE-45A6-A20C-F6F1EA90554B");
+                nint inspectable = WinRT.MarshalInspectable<SwapChainPanel>.FromManaged(Panel);
+                try
+                {
+                    Marshal.ThrowExceptionForHR(Marshal.QueryInterface(inspectable, in iid, out nint native));
+                    try { Presenter = new(renderer, native); } finally { Marshal.Release(native); }
+                }
+                finally { Marshal.Release(inspectable); }
             }
-            finally { Marshal.Release(inspectable); }
+            initializing = false;
+            renderer.Render(Multiplot, width, height);
+            Presenter.Present(width, height, Panel.CompositionScaleX, Panel.CompositionScaleY);
+            PresentedFrames++;
+            RecoveryAttempt = 0;
         }
-        renderer.Render(Multiplot, width, height);
-        Presenter.Present(width, height, Panel.CompositionScaleX, Panel.CompositionScaleY);
+        catch (Exception error) when (Renderer?.Device.IsDeviceLost == true ||
+            D3D12GraphicsDevice.IsDeviceLoss(error) || (initializing && RecoveryAttempt > 0))
+        {
+            BeginRecovery();
+        }
+    }
+    private void BeginRecovery()
+    {
+        ReleaseGpu(recovering: true);
+        if (Disposed || LifecycleSuspended || !IsLoaded) return;
+        if (RecoveryTimer is null)
+        {
+            RecoveryTimer = new DispatcherTimer();
+            RecoveryTimer.Tick += OnRecoveryTick;
+        }
+        RecoveryTimer.Interval = TimeSpan.FromMilliseconds(100 << RecoveryAttempt);
+        RecoveryAttempt = Math.Min(RecoveryAttempt + 1, 4);
+        RecoveryTimer.Start();
+    }
+    private void OnRecoveryTick(object? sender, object args)
+    {
+        RecoveryTimer!.Stop();
+        Refresh();
+    }
+    private void OnDeviceRemoved()
+    {
+        try { Refresh(); }
+        catch (Exception error) when ((uint)error.HResult is 0x80000013 or 0x80010108) { }
     }
     private D3D12Renderer GetRenderer()
     {
         if (!DispatcherOwner.HasThreadAccess) throw new InvalidOperationException("Access GPU resources on the owning UI thread.");
-        ObjectDisposedException.ThrowIf(Disposed, this); return Renderer ??= new();
+        ObjectDisposedException.ThrowIf(Disposed, this);
+        if (Renderer is null)
+        {
+            Renderer = new();
+            Renderer.Device.DeviceRemoved += OnDeviceRemoved;
+        }
+        return Renderer;
     }
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -142,9 +193,23 @@ public partial class UwpPlotD3D12 : UserControl, IPlotControl, IDisposable
     private void OnPanelKeyUp(object sender, KeyRoutedEventArgs e) => UserInputProcessor.ProcessKeyUp(this, e);
     private void OnCaptureLost(object sender, PointerRoutedEventArgs e) => UserInputProcessor.ProcessLostFocus();
     private void OnLostFocus(object sender, RoutedEventArgs e) => UserInputProcessor.ProcessLostFocus();
-    private void ReleaseGpu()
+    private void ReleaseGpu(bool recovering = false)
     {
-        try { Presenter?.Dispose(); } finally { Presenter = null; Renderer?.Dispose(); Renderer = null; }
+        RecoveryTimer?.Stop();
+        if (!recovering) RecoveryAttempt = 0;
+        D3D12SwapChainPresenter? presenter = Presenter;
+        D3D12Renderer? renderer = Renderer;
+        Presenter = null;
+        Renderer = null;
+        if (renderer is not null) renderer.Device.DeviceRemoved -= OnDeviceRemoved;
+        bool lost = recovering || renderer?.Device.IsDeviceLost == true;
+        try { presenter?.Dispose(); }
+        catch (Exception) when (lost) { }
+        finally
+        {
+            try { renderer?.Dispose(); }
+            catch (Exception) when (lost) { }
+        }
     }
     /// <inheritdoc />
     public void Dispose()
